@@ -30,6 +30,7 @@ struct NotchDropView: View {
 
     @State private var contentHeight: CGFloat = 0
     @State private var bounceScale: CGFloat = 1.0
+    @State private var cleanProgress: CGFloat = 0
 
     private var notchTotalHeight: CGFloat {
         isExpanded ? max(notchInfo.notchHeight, contentHeight) : 0
@@ -296,12 +297,17 @@ struct NotchDropView: View {
                             colors: [.red.opacity(0.6), .red.opacity(0.8)],
                             startPoint: .leading, endPoint: .trailing
                         ))
-                        .frame(width: geo.size.width * 0.6)
-                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: true)
+                        .frame(width: geo.size.width * cleanProgress)
                 }
             }
             .frame(height: 3)
             .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+            .onAppear {
+                cleanProgress = 0
+                withAnimation(.easeInOut(duration: 1.2)) {
+                    cleanProgress = 1.0
+                }
+            }
         }
         .frame(maxWidth: .infinity)
     }

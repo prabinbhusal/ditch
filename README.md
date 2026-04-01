@@ -7,6 +7,7 @@
 <p align="center">A lightweight macOS app cleaner that lives in your MacBook's notch.</p>
 
 <p align="center">
+  <a href="https://github.com/prabinbhusal/ditch/releases/download/v1.0.0/Ditch-1.0.0.dmg"><img src="https://img.shields.io/badge/Download-v1.0.0-red?style=flat-square" alt="Download" /></a>
   <a href="https://github.com/prabinbhusal/ditch/stargazers"><img src="https://img.shields.io/github/stars/prabinbhusal/ditch?style=flat-square" alt="Stars" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%2013%2B-black?style=flat-square" />
   <img src="https://img.shields.io/badge/swift-5.0-orange?style=flat-square" />
@@ -49,7 +50,9 @@ No clutter. No bloat. Just drag, drop, and ditch.
 
 ## Installation
 
-Download the latest `Ditch.dmg` from the [Releases](https://github.com/prabinbhusal/ditch/releases) page, open it, and drag Ditch to your Applications folder.
+[**Download Ditch-1.0.0.dmg**](https://github.com/prabinbhusal/ditch/releases/download/v1.0.0/Ditch-1.0.0.dmg)
+
+Open the DMG and drag Ditch to your Applications folder.
 
 ## Build from Source
 

@@ -52,7 +52,13 @@ No clutter. No bloat. Just drag, drop, and ditch.
 
 [**Download Ditch-1.0.0.dmg**](https://github.com/prabinbhusal/ditch/releases/download/v1.0.0/Ditch-1.0.0.dmg)
 
-Open the DMG and drag Ditch to your Applications folder.
+Open the DMG and drag Ditch to your Applications folder. Then run:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Ditch.app
+```
+
+This is needed because the app isn't signed with an Apple Developer ID, so macOS blocks it by default.
 
 ## Build from Source
 

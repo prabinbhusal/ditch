@@ -41,6 +41,7 @@ enum FileCategory: String, Sendable {
     case httpStorage = "HTTP Storage"
     case webkit = "WebKit"
     case crashReports = "Crash Reports"
+    case launchAgents = "Launch Agents"
     case other = "Other"
 }
 
@@ -96,6 +97,7 @@ enum AppCleaner {
             ("\(library)/HTTPStorages", .httpStorage),
             ("\(library)/WebKit", .webkit),
             ("\(library)/Application Scripts", .other),
+            ("\(library)/LaunchAgents", .launchAgents),
         ]
 
         let fm = FileManager.default
@@ -108,6 +110,7 @@ enum AppCleaner {
                     if let id = bundleID?.lowercased(), lower == id || lower.contains(id) { return true }
                     if lower == term || lower == "\(term).plist" { return true }
                     if category == .savedState && lower.contains(term) { return true }
+                    if category == .launchAgents, let id = bundleID?.lowercased(), lower.hasPrefix("\(id).") { return true }
                     return false
                 }
                 if matched {

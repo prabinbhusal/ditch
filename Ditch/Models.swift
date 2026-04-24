@@ -8,6 +8,7 @@ enum NotchDropState: Equatable {
     case dropped(DroppedAppInfo)
     case cleaning(DroppedAppInfo)
     case cleaned(CleanResult)
+    case blocked(BlockedAppInfo)
 }
 
 struct ScanningAppInfo: Equatable, @unchecked Sendable {
@@ -16,6 +17,16 @@ struct ScanningAppInfo: Equatable, @unchecked Sendable {
 
     static func == (lhs: ScanningAppInfo, rhs: ScanningAppInfo) -> Bool {
         lhs.name == rhs.name
+    }
+}
+
+struct BlockedAppInfo: Equatable, @unchecked Sendable {
+    let name: String
+    let icon: NSImage
+    let reason: String
+
+    static func == (lhs: BlockedAppInfo, rhs: BlockedAppInfo) -> Bool {
+        lhs.name == rhs.name && lhs.reason == rhs.reason
     }
 }
 

@@ -333,6 +333,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let name = url.deletingPathExtension().lastPathComponent
         let icon = NSWorkspace.shared.icon(forFile: url.path)
 
+        // System apps are SIP-protected and can't be removed
+        if url.path.hasPrefix("/System/") {
+            updateDropState(.blocked(BlockedAppInfo(name: name, icon: icon, reason: "System apps can't be uninstalled")))
+            autoDismiss(after: 2.0)
+            return
+        }
+
         updateDropState(.scanning(ScanningAppInfo(name: name, icon: icon)))
 
         Task.detached(priority: .userInitiated) { [weak self] in

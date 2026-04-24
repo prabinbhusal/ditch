@@ -75,8 +75,14 @@ enum AppCleaner {
         var terms: [String] = [appName.lowercased()]
         if let id = bundleID {
             terms.append(id.lowercased())
-            if let last = id.split(separator: ".").last, last.lowercased() != appName.lowercased() {
-                terms.append(String(last).lowercased())
+            let parts = id.lowercased().split(separator: ".").map(String.init)
+            let tlds: Set<String> = ["com", "org", "net", "io", "co", "app", "ai", "dev", "me", "us"]
+            let meaningful = parts.filter { !tlds.contains($0) }
+            for (idx, part) in meaningful.enumerated() where part != appName.lowercased() {
+                let isVendor = idx < meaningful.count - 1
+                // Skip shared vendor folders when the vendor has other apps installed
+                if isVendor && hasOtherAppFromVendor(vendor: part, excluding: appURL) { continue }
+                terms.append(part)
             }
         }
 
@@ -86,39 +92,55 @@ enum AppCleaner {
         var groupTerms: [String] = groupIDs.map { $0.lowercased() }
         if let tid = teamID { groupTerms.append(tid.lowercased()) }
 
-        let locations: [(String, FileCategory)] = [
-            ("\(library)/Application Support", .appSupport),
-            ("\(library)/Caches", .caches),
-            ("\(library)/Preferences", .preferences),
-            ("\(library)/Logs", .logs),
-            ("\(library)/Saved Application State", .savedState),
-            ("\(library)/Containers", .containers),
-            ("\(library)/Cookies", .cookies),
-            ("\(library)/HTTPStorages", .httpStorage),
-            ("\(library)/WebKit", .webkit),
-            ("\(library)/Application Scripts", .other),
-            ("\(library)/LaunchAgents", .launchAgents),
+        // (path, category, depth) — depth 1 scans direct children + one level of subfolders (e.g. ByHost, CrashReporter)
+        let locations: [(String, FileCategory, Int)] = [
+            ("\(library)/Application Support", .appSupport, 1),
+            ("\(library)/Caches", .caches, 1),
+            ("\(library)/Preferences", .preferences, 1),
+            ("\(library)/Logs", .logs, 1),
+            ("\(library)/Saved Application State", .savedState, 0),
+            ("\(library)/Cookies", .cookies, 0),
+            ("\(library)/HTTPStorages", .httpStorage, 0),
+            ("\(library)/WebKit", .webkit, 0),
+            ("\(library)/Application Scripts", .other, 0),
+            ("\(library)/LaunchAgents", .launchAgents, 0),
         ]
 
         let fm = FileManager.default
 
-        for (dir, category) in locations {
-            guard let contents = try? fm.contentsOfDirectory(atPath: dir) else { continue }
+        func matches(_ name: String, category: FileCategory) -> Bool {
+            let lower = name.lowercased()
+            return terms.contains { term in
+                if let id = bundleID?.lowercased(), lower == id || lower.contains(id) { return true }
+                if lower == term || lower == "\(term).plist" { return true }
+                if category == .savedState && lower.contains(term) { return true }
+                if category == .launchAgents, let id = bundleID?.lowercased(), lower.hasPrefix("\(id).") { return true }
+                return false
+            }
+        }
+
+        func scan(_ dir: String, depth: Int, category: FileCategory) {
+            guard let contents = try? fm.contentsOfDirectory(atPath: dir) else { return }
             for item in contents {
-                let lower = item.lowercased()
-                let matched = terms.contains { term in
-                    if let id = bundleID?.lowercased(), lower == id || lower.contains(id) { return true }
-                    if lower == term || lower == "\(term).plist" { return true }
-                    if category == .savedState && lower.contains(term) { return true }
-                    if category == .launchAgents, let id = bundleID?.lowercased(), lower.hasPrefix("\(id).") { return true }
-                    return false
-                }
-                if matched {
-                    let url = URL(fileURLWithPath: dir).appendingPathComponent(item)
+                let path = "\(dir)/\(item)"
+                if matches(item, category: category) {
+                    let url = URL(fileURLWithPath: path)
                     guard seen.insert(url.path).inserted else { continue }
                     files.append(RelatedFile(url: url, size: directorySize(at: url), category: category))
+                    continue
+                }
+                // Skip recursing into Apple system containers — they trigger TCC permission prompts (Music, Photos, etc.) and never hold third-party app data
+                if depth > 0 && !item.lowercased().hasPrefix("com.apple.") {
+                    var isDir: ObjCBool = false
+                    if fm.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue {
+                        scan(path, depth: depth - 1, category: category)
+                    }
                 }
             }
+        }
+
+        for (dir, category, depth) in locations {
+            scan(dir, depth: depth, category: category)
         }
 
         // Group Containers — matched by bundle ID, app group IDs, and team identifier
@@ -301,6 +323,25 @@ enum AppCleaner {
         return false
     }
 
+
+    // Returns true if any other installed app shares the given vendor segment in its bundle ID.
+    private static func hasOtherAppFromVendor(vendor: String, excluding appURL: URL) -> Bool {
+        let fm = FileManager.default
+        let excludedPath = appURL.path
+
+        for dir in Constants.applicationDirectories {
+            guard let apps = try? fm.contentsOfDirectory(atPath: dir) else { continue }
+            for app in apps where app.hasSuffix(".app") {
+                let path = "\(dir)/\(app)"
+                if path == excludedPath { continue }
+                if let bid = Bundle(path: path)?.bundleIdentifier?.lowercased() {
+                    let parts = bid.split(separator: ".").map(String.init)
+                    if parts.contains(vendor) { return true }
+                }
+            }
+        }
+        return false
+    }
 
     private static func directorySize(at url: URL) -> Int64 {
         let fm = FileManager.default

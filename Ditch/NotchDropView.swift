@@ -43,7 +43,7 @@ struct NotchDropView: View {
             return NotchAnimState(width: w, topCornerRadius: 6, bottomCornerRadius: 14)
         case .dragActive, .dragInside:
             return NotchAnimState(width: w + Constants.Layout.expandedWidthIncrease, topCornerRadius: 12, bottomCornerRadius: 18)
-        case .scanning, .dropped, .cleaning, .cleaned:
+        case .scanning, .dropped, .cleaning, .cleaned, .blocked:
             return NotchAnimState(width: w + Constants.Layout.expandedWidthIncrease, topCornerRadius: 12, bottomCornerRadius: 22)
         }
     }
@@ -87,6 +87,8 @@ struct NotchDropView: View {
                         cleaningContent(info: info).transition(.notchTransition)
                     case .cleaned(let result):
                         cleanedContent(result: result).transition(.notchTransition)
+                    case .blocked(let info):
+                        blockedContent(info: info).transition(.notchTransition)
                     default:
                         Color.clear.frame(height: 0)
                     }
@@ -230,6 +232,30 @@ struct NotchDropView: View {
         let path = url.deletingLastPathComponent().path
         let home = NSHomeDirectory()
         return path.hasPrefix(home) ? "~" + path.dropFirst(home.count) : path
+    }
+
+    @ViewBuilder
+    private func blockedContent(info: BlockedAppInfo) -> some View {
+        HStack(spacing: 10) {
+            Image(nsImage: info.icon)
+                .resizable()
+                .frame(width: 36, height: 36)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .opacity(0.5)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Can't ditch \(info.name)")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Text(info.reason)
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.45))
+                    .lineLimit(1)
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder

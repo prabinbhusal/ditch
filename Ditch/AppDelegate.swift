@@ -309,8 +309,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         notchWindow.level = .statusBar
         notchWindow.ignoresMouseEvents = {
-            if case .scanning = newState { return true }
-            return false
+            // Only capture clicks when there are interactive controls on screen.
+            // Otherwise the transparent notch window would eat clicks meant for
+            // system dialogs (e.g. the TCC "would like to access data from
+            // other apps" prompt) that appear beneath it during cleaning.
+            switch newState {
+            case .dragActive, .dragInside, .dropped: return false
+            default: return true
+            }
         }()
 
         switch newState {
